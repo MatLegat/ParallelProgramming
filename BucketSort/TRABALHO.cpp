@@ -81,10 +81,7 @@ void separaVetorParaBuckets() {
 	}
 }
 
-void bubbleSort(int bucketAtual) {
-	int * v;
-	v = buckets[bucketAtual];
-	int tam = tamanhoBucket[bucketAtual];
+void bubbleSort(int *v, int tam) {
 	int i, j, temp, trocou;
 	for(j = 0; j < tam-1; j++) {
 		trocou = 0;
@@ -103,21 +100,16 @@ void bubbleSort(int bucketAtual) {
 
 int proximoBucket;
 
-void *threadFunction(void *idThread) {
-	int id = *((int *) idThread);
+void *executaEsscravo() {
 	while (true) {
-		pthread_mutex_lock(&mutex);
-		 if (proximoBucket == nbuckets) {
-			 pthread_mutex_unlock(&mutex);
-			 break;  // Sai do loop quando nao há mais buckets
-		 }
-		 int bucketAtual = proximoBucket;
-		 proximoBucket++;
-		pthread_mutex_unlock(&mutex);
-		printf("Thread %d processando bucket %d\n", id, bucketAtual);
-		bubbleSort(bucketAtual);
+		int *bucketRecebido, executar, tamBucket;
+		MPI_Recv(...);
+		if (executar ==0)
+			break;
+		MPI_Recv(&bucketRecebido, tamvet, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(&tamBucket, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		bubbleSort(bucketRecebido, tamBucket);
 	}
-	pthread_exit(NULL);
 }
 
 void executaMestre(int nEscravos) {
@@ -128,13 +120,14 @@ void executaMestre(int nEscravos) {
 			MPI_Send MENSADEM cOM EXECUTAR
 			MPI_Send(&buckets[k-1], tamvet, MPI_INT, k, 0, MPI_COMM_WORLD);  // envia bucket
 			MPI_Send(&tamanhoBucket[k-1], 1, MPI_INT, k, 0, MPI_COMM_WORLD);  // envia tamanho do bucket
+			cout << "Mestre ENVIOU bucket " << (k-1) << " para Escravo " << k;
 		}
 		for (k = 1; k = nEscravos+1; k++) {
-			MPI_Receive bucket ordenado
+			MPI_Recv(&buckets[k-1], tamvet, MPI_INT, k)
 		}
 	}
 	executar = 0;
-	ENVIAR EXECUTAR PARA TODAS AS THREADS
+	ENVIAR EXECUTAR PARA TODAS OS PROCESSOS
 }
 
 int main(int argc, char *argc[]) {
