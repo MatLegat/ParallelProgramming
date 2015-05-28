@@ -18,23 +18,13 @@ void erroLT0() {  // Less Than 0
 	exit(1);
 }
 
-void solicitaDados() {
-	cout << "Insira o tamanho do vetor: ";
-	cin >> tamvet;
-	if (tamvet <= 0)
-		 erroLT0();
-	cout << "Insira o numero de buckets: ";
-	cin >> nbuckets;
-	if (nbuckets <= 0)
-		erroLT0();
-	else if (nbuckets > tamvet) {
-		cout << "ERRO: VALOR NAO PODE SER MAIOR DO QUE O TAMANHO DO VETOR\n";
-		exit(1);
-	} 
-	cout << "Insira o numero de processos: ";
-	cin >> nprocs;
-		if (nprocs <= 0)
-			erroLT0();
+void verificaDados(int argc, char *argv[]) {
+	if(argcounter != 3 || atoi(argv[1]) < 1 || atoi(argv[2]) < 1 || atoi(argv[2]) > atoi(argv[1])) {
+		cout << "Parametros invalidos. Considere inserir o comando na forma:\n\n      $ mpirun -np NUMERO_DE_THREADS ";
+		cout << argv[0] << " TAMANHO_DO_VETOR NUMERO_DE_BUCKETS\n\n";
+		cout << "O programa será finalizado."
+		exit(0);
+	}
 }	
 
 void geraVetorAleatorio() {
@@ -147,10 +137,10 @@ void executaMestre(int nEscravos) {
 	ENVIAR EXECUTAR PARA TODAS AS THREADS
 }
 
-int main(int argc, char **argc) {
+int main(int argc, char *argc[]) {
 	//!!!!!!!!!!!!!!!!!!!!!!DEVE RECEBER PARAMETROS POR LINHA DE COMANDO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	// aqui deve pegar o valor inserido no comando
-	solicitaDados();  //trocar por verifica
+	verificaDados();  //trocar por verifica
 	geraVetorAleatorio();
 	cout << "Vetor inicial:\n";
 	imprimeVetor();
