@@ -20,13 +20,12 @@ void erroLT0() {  // Less Than 0
 
 void verificaDados(int argc, char *argv[]) {
 	if(argcounter != 3 || atoi(argv[1]) < 1 || atoi(argv[2]) < 1 || atoi(argv[2]) > atoi(argv[1])) {
-		cout << "Parametros invalidos. Considere inserir o comando na forma:\n\n      $ mpirun -np NUMERO_DE_THREADS ";
+		cout << "Parametros invalidos. Considere inserir o comando na forma:\n\n      $ mpirun -np NUMERO_DE_PROCESSOS ";
 		cout << argv[0] << " TAMANHO_DO_VETOR NUMERO_DE_BUCKETS\n\n";
 		cout << "O programa será finalizado."
 		exit(0);
 	}
-}	
-
+ }	
 void geraVetorAleatorio() {
 	vetorPrincipal = new int[tamvet];
 	int k;
@@ -81,7 +80,7 @@ void separaVetorParaBuckets() {
 	}
 }
 
-void bubbleSort(int *v, int tam) {
++void bubbleSort(int *v, int tam) {	int * v;
 	int i, j, temp, trocou;
 	for(j = 0; j < tam-1; j++) {
 		trocou = 0;
@@ -109,28 +108,39 @@ void *executaEsscravo() {
 		MPI_Recv(&bucketRecebido, tamvet, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		MPI_Recv(&tamBucket, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		bubbleSort(bucketRecebido, tamBucket);
-	}
+		ENVIAR MENSAGEM COM BUCKET ORDENADO
+ 	}
+ }
+
+void sendBucket(int rank, int bucketPosit) {
+	MPI_Send(&buckets[bucketPosit], tamvet, MPI_INT, rank, 0, MPI_COMM_WORLD);  // envia bucket
+	MPI_Send(&tamanhoBucket[bucketPosit], 1, MPI_INT, rank, 0, MPI_COMM_WORLD);  // envia tamanho do bucket
 }
 
 void executaMestre(int nEscravos) {
 	int j, k;
 	int executar = 1;
-	for (j = nbuckets; j>=0; j--)
-		for (k = 1; k = nEscravos+1; k++) {
-			MPI_Send MENSADEM cOM EXECUTAR
-			MPI_Send(&buckets[k-1], tamvet, MPI_INT, k, 0, MPI_COMM_WORLD);  // envia bucket
-			MPI_Send(&tamanhoBucket[k-1], 1, MPI_INT, k, 0, MPI_COMM_WORLD);  // envia tamanho do bucket
-			cout << "Mestre ENVIOU bucket " << (k-1) << " para Escravo " << k;
-		}
-		for (k = 1; k = nEscravos+1; k++) {
-			MPI_Recv(&buckets[k-1], tamvet, MPI_INT, k)
-		}
+	int nroBucketsEnviados = 0;
+	for (k = 1; k = nEscravos+1; k++) {  // Envia inicialmente para todos os buckets.
+		MPI_Send(executar, 1, MPI_INT, k, 0, MPI_COMM_WORLD);  // Envia mensagem avisando que deve executar
+		sendBucket(k, k-1);
+		PRINT DO JOAO NO GIT
+		nroBucketsEnviados++;		
 	}
-	executar = 0;
-	ENVIAR EXECUTAR PARA TODAS OS PROCESSOS
+	for (; nroBucketsEnviados < nbuckets; nroBucketsEnviados++) {
+		MPI_Status st;
+		MPI_Recv(&buckets[k-1], tamvet, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &st);
+		
+		IF TERMINOU BREAK
+		RESPONDER PEGANDO MPI_Source E PASSANDO PROXIMO BUCKET
+		
+	}
+	
+	executar = 0
+	FOR PARA ENVIAR EXECUTAR PARA TODOS OS ESCRAVOS
 }
 
-int main(int argc, char *argc[]) {
+int main(int argc, char **argv) {
 	//!!!!!!!!!!!!!!!!!!!!!!DEVE RECEBER PARAMETROS POR LINHA DE COMANDO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	// aqui deve pegar o valor inserido no comando
 	verificaDados();  //trocar por verifica
@@ -141,8 +151,8 @@ int main(int argc, char *argc[]) {
 	// INICIA MPI:
 	int rank;
 	MPI_Init(&argc, &argv);
-	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);  //	nprocs recebe o numero de processos criados (incluindo o main)
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);  // rank do processo
+	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);  //	nprocs recebe o numero de processos criados (incluindo o main).
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);    // Rank do processo
 	int nEscravos = nprocs - 1;
 	if (rank == 0)
 		executaMestre(nEscravos);
