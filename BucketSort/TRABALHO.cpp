@@ -25,7 +25,8 @@ void verificaDados(int argc, char *argv[]) {
 		cout << "O programa será finalizado."
 		exit(0);
 	}
- }	
+}
+
 void geraVetorAleatorio() {
 	vetorPrincipal = new int[tamvet];
 	int k;
@@ -80,7 +81,7 @@ void separaVetorParaBuckets() {
 	}
 }
 
-+void bubbleSort(int *v, int tam) {	int * v;
++void bubbleSort(int *v, int tam) {
 	int i, j, temp, trocou;
 	for(j = 0; j < tam-1; j++) {
 		trocou = 0;
@@ -97,7 +98,7 @@ void separaVetorParaBuckets() {
 	}
 }
 
-int proximoBucket;
+//int proximoBucket;
 
 void *executaEsscravo() {
 	while (true) {
@@ -140,7 +141,7 @@ void executaMestre(int nEscravos) {
 	FOR PARA ENVIAR EXECUTAR PARA TODOS OS ESCRAVOS
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char *argv[]) {
 	//!!!!!!!!!!!!!!!!!!!!!!DEVE RECEBER PARAMETROS POR LINHA DE COMANDO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	// aqui deve pegar o valor inserido no comando
 	verificaDados();  //trocar por verifica
@@ -151,7 +152,7 @@ int main(int argc, char **argv) {
 	// INICIA MPI:
 	int rank;
 	MPI_Init(&argc, &argv);
-	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);  //	nprocs recebe o numero de processos criados (incluindo o main).
+	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);  // nprocs recebe o numero de processos criados (incluindo o main).
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);    // Rank do processo
 	int nEscravos = nprocs - 1;
 	if (rank == 0)
