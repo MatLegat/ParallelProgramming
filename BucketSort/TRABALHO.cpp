@@ -159,7 +159,7 @@ int main(int argc, char **argc) {
 	int rank;
 	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);  //	nprocs recebe o numero de processos criados (incluindo o main)
-	MPI_Comm_rank(MPI_COMM_WORLD, &rrank);  // rank do processo
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);  // rank do processo
 	int nEscravos = nprocs - 1;
 	if (rank == 0)
 		executaMestre(nEscravos);
