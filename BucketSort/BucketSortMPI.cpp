@@ -1,4 +1,4 @@
-// compilar com 'mpic++'
+// Compilar com 'mpic++'
 #include <mpi.h>
 #include <stdio.h>
 #include <iostream>
@@ -7,22 +7,28 @@
 using namespace std;
 
 int tamvet, nbuckets, nprocs;
-//pthread_mutex_t mutex;
 int * vetorPrincipal;
 int ** buckets;  // Vetor de buckets (vetores)
-int * tamanhoBucket;
-//pthread_mutex_t mutex;
+int * tamanhoBucket;  // Vetor dos tamanhos dos buckets
 
+#define TAG_TAMANHO 0
+#define TAG_BUCKET 1
+
+
+// Finaliza o programa:
 void kill() {
 	cout << "\nO programa será finalizado.\n--------------------------------------------------------------------------\n";
-	exit(0);
+	exit(EXIT_FAILURE);
 }
 
 void verificaDados(int argc, char *argv[]) {
 	// Obs: se nao recebeu número como parametro, atoi retorna 0.
-	if (argc != 3 || atoi(argv[2]) > atoi(argv[1])) {
+	if (argc != 3) {
 		cout << "Parametros invalidos. Considere inserir o comando na forma:\n\n  $ mpirun -np NUMERO_DE_PROCESSOS ";
 		cout << argv[0] << " TAMANHO_VETOR NUMERO_BUCKETS\n";
+		kill();
+	} else if (atoi(argv[2]) > atoi(argv[1])) {
+		cout << "O número de processos deve ser menor que o número de buckets.";
 		kill();
 	} else if (atoi(argv[1]) < 1) {
 		cout << "O tamanho do vetor deve ser um número maior do que 0";
@@ -54,20 +60,18 @@ void separaVetorParaBuckets() {
 	buckets = new int*[nbuckets];
 	tamanhoBucket = new int[nbuckets];
 	int bucketAtual = 0, valorInicialAtual = 0; 
+	
+	// Loop para verificar todos os buckets:
 	for (; bucketAtual < nbuckets; bucketAtual++) {
+		
 		int tamanhoFaixaAtual = (tamvet - valorInicialAtual) / (nbuckets - bucketAtual);
 		if (((tamvet - valorInicialAtual) % (nbuckets - bucketAtual)) != 0)
 			tamanhoFaixaAtual ++;
+			
 		tamanhoBucket[bucketAtual] = 0;
 		int k;
-/*		// Loop para ver quantos elementos estao na faixa do bucket autal:
-		for(k=0; k<tamvet; k++) {
-			// Se o valor esta na faixa atual:
-			int valorAtual = vetorPrincipal[k];
-			if (valorInicialAtual <= valorAtual && valorAtual < (valorInicialAtual + tamanhoFaixaAtual))
-				tamanhoBucket[bucketAtual] ++;  vai pro outro loop
-		} 
-*/		buckets[bucketAtual] = new int[tamvet];
+		buckets[bucketAtual] = new int[tamvet];  // Desperdício de memória por uma melhor performance.
+		
 		// Loop para adicionar elementos no bucket atual:
 		int i = 0;
 		for (k=0; k<tamvet; k++) {
@@ -78,27 +82,25 @@ void separaVetorParaBuckets() {
 				tamanhoBucket[bucketAtual] ++;
 			}
 		}
+		
+		// Loop para preencher elementos do vetor que nao estao no bucket com -1.
 		for (k=i; k<tamvet; k++)
-			buckets[bucketAtual][k] = -1;  // Preenche elementos do vetor que nao estao no bucket com -1
+			buckets[bucketAtual][k] = -1;
 		valorInicialAtual += tamanhoFaixaAtual;
-		// IMPRIME PARA TESTE:
-/*			for (i=0; i<tamanhoBucket[bucketAtual]; i++)
-				cout << buckets[bucketAtual][i] << ' ';
-			cout << "tamanhoFaixaAtual = " << tamanhoFaixaAtual << '\n';
-		//FIM teste */
 	}
 }
 
 void bubbleSort(int *v, int tam) {
-	int i, j, temp, trocou;
+	int i, j, temp;
+	bool trocou;
 	for(j = 0; j < tam-1; j++) {
-		trocou = 0;
+		trocou = false;
 		for(i = 0; i < tam-1; i++) {
 			if(v[i+1] < v[i]) {
 				temp = v[i];
 				v[i] = v[i+1];
 				v[i+1] = temp;
-				trocou = 1;
+				trocou = true;
 			}
 		} 
 		if(!trocou)
@@ -106,38 +108,13 @@ void bubbleSort(int *v, int tam) {
 	}
 }
 
-void executaEscravo() {
-	while (true) {
-		int *bucketRecebido, executar, tamBucket;
-		cout << "AAAAA\n";
-		MPI_Recv(&executar, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		cout << "BBBBB\n";
-		if (executar == 0)
-			break;
-		MPI_Recv(&bucketRecebido, tamvet, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		cout << "CCCCC\n";
-
-		MPI_Recv(&tamBucket, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		cout << "DDDDD\n";
-		
-		//TESTE
-		cout << bucketRecebido[0];
-		//MOREU AQUI
-		// bucketRecebido ESTÁ VAZIO 
-		
-		bubbleSort(bucketRecebido, tamBucket);
-		cout << "EEEEE\n";
-		MPI_Send(&bucketRecebido, tamvet, MPI_INT, 0, 0, MPI_COMM_WORLD);
- 	}
- }
-
+// Envia o bucket da posição bucketPosit para o processo de rank rank:
 void sendBucket(int rank, int bucketPosit) {
-	int executar = 1;
-	MPI_Send(&executar, 1, MPI_INT, rank, 0, MPI_COMM_WORLD);  // Envia mensagem avisando que deve executar
-	MPI_Send(&buckets[bucketPosit], tamvet, MPI_INT, rank, 0, MPI_COMM_WORLD);  // envia bucket
-	MPI_Send(&tamanhoBucket[bucketPosit], 1, MPI_INT, rank, 0, MPI_COMM_WORLD);  // envia tamanho do bucket
+	MPI_Send(&tamanhoBucket[bucketPosit], 1, MPI_INT, rank, TAG_TAMANHO, MPI_COMM_WORLD);  // Envia tamanho do bucket.
+	MPI_Send(buckets[bucketPosit], tamanhoBucket[bucketPosit], MPI_INT, rank, TAG_BUCKET, MPI_COMM_WORLD);  // Envia bucket.
 }
 
+// Une os buckets de volta no vetor principal:
 void redistribuir() {
 	int i, j, k;  
 	k = 0;  // k = Posição Atual
@@ -149,6 +126,24 @@ void redistribuir() {
 	}
 }
 
+void executaEscravo() {
+	while (true) {
+		int tamBucket;
+		MPI_Recv(&tamBucket, 1, MPI_INT, 0, TAG_TAMANHO, MPI_COMM_WORLD, MPI_STATUS_IGNORE);  // Recebe tamanho.
+			
+		if (tamBucket == -1)  // Se recebeu -1, termina escravo.
+			break;
+			
+		int bucketRecebido[tamBucket];
+		MPI_Recv(&bucketRecebido, tamBucket, MPI_INT, 0, TAG_BUCKET, MPI_COMM_WORLD, MPI_STATUS_IGNORE);  // Recebe bucket.
+		
+		bubbleSort(bucketRecebido, tamBucket);  // Ordena bucket.
+		
+		MPI_Send(&tamBucket, 1, MPI_INT, 0, TAG_TAMANHO, MPI_COMM_WORLD);  // Envia tamanho.
+		MPI_Send(&bucketRecebido, tamBucket, MPI_INT, 0, TAG_BUCKET, MPI_COMM_WORLD);  // Envia bucket ordenado.
+ 	}
+ }
+
 void executaMestre(int nEscravos) {
 	geraVetorAleatorio();
 	imprimeVetor();
@@ -157,60 +152,74 @@ void executaMestre(int nEscravos) {
 	int k;
 	int nroBucketsEnviados = 0;
 	int nroBucketsRecebidos = 0;
-	int positBucketAtualDoEscravo[nEscravos];
-	for (k = 1; k < nEscravos+1 && k < nbuckets; k++) {  // Envia inicialmente para todos os escravos (ou até enviar todos os buckets).
+	int positBucketAtualDoEscravo[nEscravos+1];  // Para saber pelo rank do escravo qual vetor ele recebeu antes.
+	
+	// Envia inicialmente para todos os escravos (ou até enviar todos os buckets).
+	for (k = 1; k < nEscravos+1 && k < nbuckets; k++) {
 		if (tamanhoBucket[k-1] <= 1)  // Buckets vazios ou com apenas 1 elemento não devem ser enviados.
 			k++;  // Pula bucket
 		positBucketAtualDoEscravo[k] = k-1;
-		sendBucket(k, k-1);
+		sendBucket(k, k-1);  // Envia.
 		cout << "Mestre ENVIOU bucket " << (k-1) << " para Escravo " << k << "\n";
 		nroBucketsEnviados++;		
 	}
 	
-	for (; nroBucketsRecebidos < nbuckets;) {  // Loop para receber todos.
-		int tempBucket[tamvet];
+	// Loop para receber todos:
+	for (; nroBucketsRecebidos < nbuckets;) {
+		int tempTamanho;
 		MPI_Status st;
-		MPI_Recv(&tempBucket, tamvet, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &st);
+		
+		MPI_Recv(&tempTamanho, 1, MPI_INT, MPI_ANY_SOURCE, TAG_TAMANHO, MPI_COMM_WORLD, &st);  // Recebe tamanho.
 		int source = st.MPI_SOURCE;
 		int posit = positBucketAtualDoEscravo[source];
+		
+		MPI_Recv(buckets[posit], tempTamanho, MPI_INT, source, TAG_BUCKET, MPI_COMM_WORLD, &st);  // Recebe bucket.
 		cout << "Mestre RECEBEU bucket " << posit << " do Escravo " << source << "\n";
-		buckets[posit] = tempBucket;
 		nroBucketsRecebidos++;
 
-		if (nroBucketsEnviados < nbuckets) {  // Se ainda restam buckets, envia para o escravo que acabou de terminar.
+		// Se ainda restam buckets, envia para o escravo que acabou de terminar:
+		if (nroBucketsEnviados < nbuckets) {
 			int positProx = nroBucketsEnviados;
-			positBucketAtualDoEscravo[k] = positProx;
-			sendBucket(source, positProx);
+			positBucketAtualDoEscravo[source] = positProx;
+			sendBucket(source, positProx);  // Envia.
 			cout << "Mestre ENVIOU bucket " << positProx << " para Escravo " << source << "\n";
 			nroBucketsEnviados++;	
 		}
 	}
-	int executar = 0;
-	for (k = 1; k < nEscravos+1; k++) // Loop para terminar os escravos.
-		MPI_Send(&executar, 1, MPI_INT, k, 0, MPI_COMM_WORLD);  // Envia mensagem avisando que não deve executar.
-	redistribuir();  // Redistribui buckets ordenados no vetor original;
+	
+	int tamanho = -1;
+	// Loop para terminar todos os escravos:
+	for (k = 1; k < nEscravos+1; k++)
+		MPI_Send(&tamanho, 1, MPI_INT, k, TAG_TAMANHO, MPI_COMM_WORLD);  // envia tamanho -1 para terminar escravo
+
+	redistribuir();
+	imprimeVetor();
 }
 
 int main(int argc, char *argv[]) {
-	verificaDados(argc, argv);
+
 	nbuckets = atoi(argv[2]);
 	tamvet = atoi(argv[1]);
-	// INICIA MPI:
+
 	int rank;
 	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);  // nprocs recebe o numero de processos criados (incluindo o main).
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);    // Rank do processo
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);  // Rank do processo.
+	
 	if (nprocs < 2) {
-		// Pode não ter chamado pelo mpirun
+		// Pode não ter sido chamado pelo mpirun.
 		cout << "O número de processos deve ser um número maior do que 1\n";
 		verificaDados(0, argv);  // Imprime erro de formatação inválida
 	}
 	int nEscravos = nprocs - 1;
-	if (rank == 0)
+	
+	if (rank == 0) {
+		verificaDados(argc, argv);
 		executaMestre(nEscravos);
-	else 
+	} else {
 		executaEscravo();
-	MPI_Finalize();
-	imprimeVetor();
+	}
+	
+	MPI_Finalize();	
 	return 0;
 };
