@@ -8,9 +8,8 @@ using namespace std;
 
 int tamvet, nbuckets, nprocs;
 int * vetorPrincipal;
-int ** buckets;  // Vetor de buckets (vetores)
-int * tamanhoBucket;  // Vetor dos tamanhos dos buckets
-bool dadosOK;
+int ** buckets;  // Vetor de buckets (vetores).
+int * tamanhoBucket;  // Vetor dos tamanhos dos buckets.
 
 #define TAG_TAMANHO 0
 #define TAG_BUCKET 1
@@ -27,7 +26,6 @@ void kill(int rank) {
 void verificaDados(int argc, char *argv[], int rank) {
 	// Obs: se nao recebeu número como parametro, atoi retorna 0.
 	// Só improme se for mestre (rank 0).
-	dadosOK = false;
 	if (argc != 3) {
 		if (rank == 0) {	
 			cout << "Parametros invalidos. Considere inserir o comando na forma:\n\n  $ mpirun -np NUMERO_DE_PROCESSOS ";
@@ -46,8 +44,6 @@ void verificaDados(int argc, char *argv[], int rank) {
 		if (rank == 0)
 			cout << "O número de buckets não deve ser maior do que o tamanho do vetor.";
 		kill(rank);
-	} else {
-		dadosOK = true;
 	}
 }
 
@@ -97,7 +93,7 @@ void separaVetorParaBuckets() {
 			}
 		}
 		
-		// Loop para preencher elementos do vetor que nao estao no bucket com -1.
+		// Loop para preencher elementos do vetor que nao estao no bucket com -1:
 		for (k=i; k<tamvet; k++)
 			buckets[bucketAtual][k] = -1;
 		valorInicialAtual += tamanhoFaixaAtual;
@@ -133,7 +129,7 @@ void sendBucket(int rank, int bucketPosit) {
 // Une os buckets de volta no vetor principal:
 void redistribuir() {
 	int i, j, k;  
-	k = 0;  // k = Posição Atual
+	k = 0;  // k = Posição Atual.
 	for (i=0; i<nbuckets; i++) {
 		for (j=0; j<tamanhoBucket[i]; j++) {
 			vetorPrincipal[k] = buckets[i][j];
@@ -218,7 +214,7 @@ void executaMestre(int nEscravos) {
 	int tamanho = -1;
 	// Loop para terminar todos os escravos:
 	for (k = 1; k < nEscravos+1; k++)
-		MPI_Send(&tamanho, 1, MPI_INT, k, TAG_TAMANHO, MPI_COMM_WORLD);  // envia tamanho -1 para terminar escravo
+		MPI_Send(&tamanho, 1, MPI_INT, k, TAG_TAMANHO, MPI_COMM_WORLD);  // envia tamanho -1 para terminar escravo.
 
 	redistribuir();
 	imprimeVetor();
@@ -235,7 +231,7 @@ int main(int argc, char *argv[]) {
 		if (nprocs < 2) {
 			// Pode não ter sido chamado pelo mpirun.
 			cout << "O número de processos deve ser um número maior do que 1.\n";
-			verificaDados(0, argv, 0);  // Imprime erro de formatação inválida
+			verificaDados(0, argv, 0);  // Imprime erro de formatação inválida.
 		}
 		verificaDados(argc, argv, rank);
 	
