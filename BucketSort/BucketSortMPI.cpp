@@ -28,7 +28,7 @@ void verificaDados(int argc, char *argv[]) {
 		cout << argv[0] << " TAMANHO_VETOR NUMERO_BUCKETS\n";
 		kill();
 	} else if (atoi(argv[2]) > atoi(argv[1])) {
-		cout << "O número de processos deve ser menor que o número de buckets.";
+		cout << "O número de buckets não deve ser maior do que o tamanho do vetor.";
 		kill();
 	} else if (atoi(argv[1]) < 1) {
 		cout << "O tamanho do vetor deve ser um número maior do que 0";
@@ -156,7 +156,7 @@ void executaMestre(int nEscravos) {
 	
 	// Envia inicialmente para todos os escravos (ou até enviar todos os buckets).
 	for (k = 1; k < nEscravos+1 && k < nbuckets; k++) {
-		if (tamanhoBucket[k-1] <= 1)  // Buckets vazios ou com apenas 1 elemento não devem ser enviados.
+		for (; tamanhoBucket[k-1] <= 1;)  // Buckets vazios ou com apenas 1 elemento não devem ser enviados.
 			k++;  // Pula bucket
 		positBucketAtualDoEscravo[k] = k-1;
 		sendBucket(k, k-1);  // Envia.
@@ -179,11 +179,13 @@ void executaMestre(int nEscravos) {
 
 		// Se ainda restam buckets, envia para o escravo que acabou de terminar:
 		if (nroBucketsEnviados < nbuckets) {
-			int positProx = nroBucketsEnviados;
-			positBucketAtualDoEscravo[source] = positProx;
-			sendBucket(source, positProx);  // Envia.
-			cout << "Mestre ENVIOU bucket " << positProx << " para Escravo " << source << "\n";
-			nroBucketsEnviados++;	
+			int positSend = nroBucketsEnviados;
+			for (; tamanhoBucket[positSend] <= 1;)  // Buckets vazios ou com apenas 1 elemento não devem ser enviados.
+				positSend++;  // Pula bucket
+			positBucketAtualDoEscravo[source] = positSend;
+			sendBucket(source, positSend);  // Envia.
+			cout << "Mestre ENVIOU bucket " << positSend << " para Escravo " << source << "\n";
+			nroBucketsEnviados = positSend + 1;	
 		}
 	}
 	
