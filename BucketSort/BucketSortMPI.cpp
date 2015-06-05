@@ -154,10 +154,12 @@ void executaMestre(int nEscravos) {
 	int nroBucketsRecebidos = 0;
 	int positBucketAtualDoEscravo[nEscravos+1];  // Para saber pelo rank do escravo qual vetor ele recebeu antes.
 	
-	// Envia inicialmente para todos os escravos (ou até enviar todos os buckets).
-	for (k = 1; k < nEscravos+1 && k < nbuckets; k++) {
-		for (; tamanhoBucket[k-1] <= 1;)  // Buckets vazios ou com apenas 1 elemento não devem ser enviados.
-			k++;  // Pula bucket
+	// Envia inicialmente para todos os escravos
+	for (k = 1; k < nEscravos+1; k++) {
+		for (; tamanhoBucket[k-1] <= 1 && k < nbuckets;)  // Buckets vazios ou com apenas 1 elemento não devem ser enviados.
+			k++;  // Pula bucket.
+		if (k < nbuckets)  // Se não há mais buckets para enviar, sai do loop.
+			break;
 		positBucketAtualDoEscravo[k] = k-1;
 		sendBucket(k, k-1);  // Envia.
 		cout << "Mestre ENVIOU bucket " << (k-1) << " para Escravo " << k << "\n";
@@ -178,14 +180,14 @@ void executaMestre(int nEscravos) {
 		nroBucketsRecebidos++;
 
 		// Se ainda restam buckets, envia para o escravo que acabou de terminar:
-		if (nroBucketsEnviados < nbuckets) {
-			int positSend = nroBucketsEnviados;
-			for (; tamanhoBucket[positSend] <= 1;)  // Buckets vazios ou com apenas 1 elemento não devem ser enviados.
-				positSend++;  // Pula bucket
-			positBucketAtualDoEscravo[source] = positSend;
-			sendBucket(source, positSend);  // Envia.
-			cout << "Mestre ENVIOU bucket " << positSend << " para Escravo " << source << "\n";
-			nroBucketsEnviados = positSend + 1;	
+		// Buckets vazios ou com apenas 1 elemento não devem ser enviados.
+		for (; tamanhoBucket[nroBucketsEnviados] <= 1 && nroBucketsEnviados < nbuckets;)  
+			nroBucketsEnviados++;  // Pula bucket.
+		if (nroBucketsEnviados < nbuckets) {  // Se não pulou o último bucket.
+			positBucketAtualDoEscravo[source] = nroBucketsEnviados;
+			sendBucket(source, nroBucketsEnviados);  // Envia.
+			cout << "Mestre ENVIOU bucket " << nroBucketsEnviados << " para Escravo " << source << "\n";
+			nroBucketsEnviados = nroBucketsEnviados + 1;	
 		}
 	}
 	
