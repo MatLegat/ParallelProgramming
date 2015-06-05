@@ -23,12 +23,17 @@ void kill(int rank) {
 	exit(EXIT_FAILURE);
 }
 
-void verificaDados(int argc, char *argv[], int rank) {
+void verificaDados(int argc, char *argv[], int rank, int nprocs) {
 	// Obs: se nao recebeu número como parametro, atoi retorna 0.
-	// Só improme se for mestre (rank 0).
+	// Só imprime se for mestre (rank 0).
+	if (nprocs < 2) {
+		// Pode não ter sido chamado pelo mpirun.
+		cout << "O número de processos deve ser um número maior do que 1.\n";
+		argc = 1;  // Imprime erro de formatação inválida.
+	}
 	if (argc != 3) {
 		if (rank == 0) {	
-			cout << "Parametros invalidos. Considere inserir o comando na forma:\n\n  $ mpirun -np NUMERO_DE_PROCESSOS ";
+			cout << "Parametros invalidos. Considere inserir o comando na forma:\n\n  $ mpirun -np NUMERO_PROCESSOS ";
 			cout << argv[0] << " TAMANHO_VETOR NUMERO_BUCKETS";
 		}
 		kill(rank);
@@ -227,13 +232,7 @@ int main(int argc, char *argv[]) {
 	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);  // nprocs recebe o numero de processos criados (incluindo o main).
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);  // Rank do processo.
 	
-	// Verificação de dados:
-		if (nprocs < 2) {
-			// Pode não ter sido chamado pelo mpirun.
-			cout << "O número de processos deve ser um número maior do que 1.\n";
-			verificaDados(0, argv, 0);  // Imprime erro de formatação inválida.
-		}
-		verificaDados(argc, argv, rank);
+	verificaDados(argc, argv, rank, nprocs);
 	
 	nbuckets = atoi(argv[2]);
 	tamvet = atoi(argv[1]);
